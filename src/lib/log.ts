@@ -4,45 +4,45 @@ import { Rating, State, date_scheduler, fixRating, fixState } from "ts-fsrs";
 import { RevlogPrismaUnChecked } from "@/vendor/fsrsToPrisma/handler";
 
 export async function findLogsByCid(cid: number, deleted: boolean = false) {
-    const logs = await prisma.revlog.findMany({
-        where: {
-            cid,
-            deleted: deleted
-        },
-        orderBy: {
-            review: 'desc'
-        }
-    })
-    return logs
+  const logs = await prisma.revlog.findMany({
+    where: {
+      cid,
+      deleted: deleted,
+    },
+    orderBy: {
+      review: 'desc',
+    },
+  });
+  return logs;
 }
 
-export async function findLastLogByCid(cid: number,deleted: boolean = false) {
-    const logs = await prisma.revlog.findFirst({
-        where: {
-            cid,
-            deleted: deleted
-        },
-        orderBy: {
-            review: 'desc'
-        }
-    })
-    if (!logs) {
-        return null
-    }
-    return {
-        ...logs,
-        rating: logs.grade
-    } as unknown as RevlogPrismaUnChecked
+export async function findLastLogByCid(cid: number, deleted: boolean = false) {
+  const logs = await prisma.revlog.findFirst({
+    where: {
+      cid,
+      deleted: deleted,
+    },
+    orderBy: {
+      review: 'desc',
+    },
+  });
+  if (!logs) {
+    return null;
+  }
+  return {
+    ...logs,
+    rating: logs.grade,
+  } as unknown as RevlogPrismaUnChecked;
 }
 
-export async function deleteLogByLid(lid: string,deleted: boolean = false) {
-    const log = await prisma.revlog.delete({
-        where: {
-            lid,
-            deleted: deleted
-        }
-    })
-    return log
+export async function deleteLogByLid(lid: string, deleted: boolean = false) {
+  const log = await prisma.revlog.delete({
+    where: {
+      lid,
+      deleted: deleted,
+    },
+  });
+  return log;
 }
 
 export async function getTodayLearnedNewCardCount(uid: number, startOfDay: Date, source?: string) {
@@ -103,12 +103,12 @@ export async function getTodayLearnedNewCardCount(uid: number, startOfDay: Date,
 }
 
 export type ExportRevLog = {
-    card_id: number,
-    review_time: number,
-    review_rating: Rating,
-    review_state: State,
-    review_duration?: number
-}
+  card_id: number;
+  review_time: number;
+  review_rating: Rating;
+  review_state: State;
+  review_duration?: number;
+};
 
 export async function exportLogsByUid(uid: number): Promise<ExportRevLog[]> {
     const data = await prisma.revlog.findMany({

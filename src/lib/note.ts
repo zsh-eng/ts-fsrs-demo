@@ -1,8 +1,7 @@
-import prisma from "./prisma";
-import { ProgeigoNodeData, NodeData } from "@/types";
-import { createEmptyCardByPrisma } from "@/vendor/fsrsToPrisma";
-import { Card, Note, Prisma, PrismaPromise } from "@prisma/client";
-
+import prisma from './prisma';
+import { ProgeigoNodeData, NodeData } from '@/types';
+import { createEmptyCardByPrisma } from '@/vendor/fsrsToPrisma';
+import { Card, Note, Prisma, PrismaPromise } from '@prisma/client';
 
 export async function addNote(data: Partial<NodeData> & { uid: number }) {
   const question = data.question;
@@ -10,7 +9,7 @@ export async function addNote(data: Partial<NodeData> & { uid: number }) {
   if (!question || !answer) {
     return false;
   }
-  const uid = data.uid
+  const uid = data.uid;
   const fc = createEmptyCardByPrisma();
   const _note = await prisma.note.findFirst({
     where: { question },
@@ -18,29 +17,29 @@ export async function addNote(data: Partial<NodeData> & { uid: number }) {
   });
   return _note
     ? prisma.note.update({
-      where: {
-        uid,
-        nid: _note ? _note.nid : undefined,
-      },
-      data: {
-        question,
-        answer,
-        extend: data.extend ? JSON.stringify(data.extend) : "",
-      },
-    })
-    : prisma.note.create({
-      data: {
-        uid,
-        question,
-        answer,
-        extend: data.extend ? JSON.stringify(data.extend) : "",
-        card: {
-          create: fc,
+        where: {
+          uid,
+          nid: _note ? _note.nid : undefined,
         },
-        source: "manual",
-      },
-      include: { card: true },
-    });
+        data: {
+          question,
+          answer,
+          extend: data.extend ? JSON.stringify(data.extend) : '',
+        },
+      })
+    : prisma.note.create({
+        data: {
+          uid,
+          question,
+          answer,
+          extend: data.extend ? JSON.stringify(data.extend) : '',
+          card: {
+            create: fc,
+          },
+          source: 'manual',
+        },
+        include: { card: true },
+      });
 }
 
 export async function initProgeigoNote(uid: number, data: ProgeigoNodeData) {
@@ -60,35 +59,62 @@ export async function initProgeigoNote(uid: number, data: ProgeigoNodeData) {
       card: {
         create: fc,
       },
-      source: 'プログラミング必須英単語600+'
+      source: 'プログラミング必須英単語600+',
     },
     include: { card: true },
   });
 }
 
-export async function initProgeigoNotes(uid: number, dates: ProgeigoNodeData[]) {
+export async function initProgeigoNotes(
+  uid: number,
+  dates: ProgeigoNodeData[]
+) {
   const all = dates.map((note) => initProgeigoNote(uid, note));
   return Promise.all(all);
 }
 
-export async function getNotes({ uid, take, query, order, skip }: { uid: number, take?: number, skip?: number, query?: Prisma.NoteWhereInput, order?: Prisma.NoteOrderByWithRelationInput | Prisma.NoteOrderByWithRelationInput[] }) {
+export async function getNotes({
+  uid,
+  take,
+  query,
+  order,
+  skip,
+}: {
+  uid: number;
+  take?: number;
+  skip?: number;
+  query?: Prisma.NoteWhereInput;
+  order?:
+    | Prisma.NoteOrderByWithRelationInput
+    | Prisma.NoteOrderByWithRelationInput[];
+}) {
   const notes = await prisma.note.findMany({
-    take: take, where: {
+    take: take,
+    where: {
       uid,
       deleted: false,
-      ...query
-    }, orderBy: order, skip, include: { card: true }
+      ...query,
+    },
+    orderBy: order,
+    skip,
+    include: { card: true },
   });
   return notes as Array<Note & { card: Card }>;
 }
 
-export async function getNoteCount({ uid, query }: { uid: number, query?: Prisma.NoteWhereInput }) {
+export async function getNoteCount({
+  uid,
+  query,
+}: {
+  uid: number;
+  query?: Prisma.NoteWhereInput;
+}) {
   const count = await prisma.note.count({
     where: {
       uid,
       deleted: false,
-      ...query
-    }
+      ...query,
+    },
   });
   return count;
 }
@@ -96,7 +122,7 @@ export async function getNoteByNid(nid: number, deleted: boolean = false) {
   const note = await prisma.note.findFirst({
     where: {
       nid,
-      deleted: deleted
+      deleted: deleted,
     },
     include: {
       card: true,
@@ -109,7 +135,7 @@ export async function getNoteByCid(cid: number, deleted: boolean = false) {
   const note = await prisma.note.findFirst({
     where: {
       card: {
-        cid
+        cid,
       },
       deleted: deleted,
     },
@@ -119,7 +145,10 @@ export async function getNoteByCid(cid: number, deleted: boolean = false) {
   });
   return note;
 }
-export async function getNoteByQuestion(question: string, deleted: boolean = false) {
+export async function getNoteByQuestion(
+  question: string,
+  deleted: boolean = false
+) {
   const note = await prisma.note.findFirst({
     where: {
       question,
@@ -132,7 +161,10 @@ export async function getNoteByQuestion(question: string, deleted: boolean = fal
   return note;
 }
 
-export async function delNoteByQuestion(question: string, deleted: boolean = false) {
+export async function delNoteByQuestion(
+  question: string,
+  deleted: boolean = false
+) {
   const note = await getNoteByQuestion(question);
   if (!note) {
     return false;
@@ -145,82 +177,93 @@ export async function delNoteByQuestion(question: string, deleted: boolean = fal
   });
 }
 
-
 export async function deleteNoteByNid(nid: number) {
   const note = await getNoteByNid(nid);
   prisma.$transaction([
     prisma.card.update({
       select: {
         cid: true,
-        deleted: true
+        deleted: true,
       },
       where: {
-        cid: note?.card?.cid ?? -1
+        cid: note?.card?.cid ?? -1,
       },
       data: {
-        deleted: true
-      }
+        deleted: true,
+      },
     }),
     prisma.revlog.updateMany({
       where: {
-        cid: note?.card?.cid ?? -1
+        cid: note?.card?.cid ?? -1,
       },
       data: {
-        deleted: true
-      }
+        deleted: true,
+      },
     }),
     prisma.note.update({
       select: {
         nid: true,
-        deleted: true
+        deleted: true,
       },
       where: {
-        nid: nid
+        nid: nid,
       },
       data: {
-        deleted: true
-      }
-    })
+        deleted: true,
+      },
+    }),
   ]);
-  return { cid: note?.card?.cid, nid: note?.nid! } as { cid?: number, nid: number };
+  return { cid: note?.card?.cid, nid: note?.nid! } as {
+    cid?: number;
+    nid: number;
+  };
 }
 
-
 export async function restoreNoteByNid(nid: number, cid?: number) {
-  const restore: PrismaPromise<{ nid: number, deleted: boolean } | { cid: number, deleted: boolean } | Prisma.BatchPayload>[] = []
+  const restore: PrismaPromise<
+    | { nid: number; deleted: boolean }
+    | { cid: number; deleted: boolean }
+    | Prisma.BatchPayload
+  >[] = [];
   if (cid) {
-    restore.push(prisma.card.update({
-      select: {
-        cid: true,
-        deleted: true
-      },
-      where: {
-        cid: cid
-      },
-      data: {
-        deleted: false
-      }
-    }))
-    restore.push(prisma.revlog.updateMany({
-      where: {
-        cid: cid
-      },
-      data: {
-        deleted: false
-      }
-    }))
+    restore.push(
+      prisma.card.update({
+        select: {
+          cid: true,
+          deleted: true,
+        },
+        where: {
+          cid: cid,
+        },
+        data: {
+          deleted: false,
+        },
+      })
+    );
+    restore.push(
+      prisma.revlog.updateMany({
+        where: {
+          cid: cid,
+        },
+        data: {
+          deleted: false,
+        },
+      })
+    );
   }
-  restore.push(prisma.note.update({
-    select: {
-      nid: true,
-      deleted: true
-    },
-    where: {
-      nid: nid
-    },
-    data: {
-      deleted: false
-    }
-  }))
+  restore.push(
+    prisma.note.update({
+      select: {
+        nid: true,
+        deleted: true,
+      },
+      where: {
+        nid: nid,
+      },
+      data: {
+        deleted: false,
+      },
+    })
+  );
   return prisma.$transaction(restore);
 }
