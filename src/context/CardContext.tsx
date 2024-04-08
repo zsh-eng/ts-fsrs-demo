@@ -112,12 +112,13 @@ export function CardProvider({
     }
     return current;
   });
-  const [DSR,setDSR] = useState<DSR>();
-  const [showTime,setShowTime] = useState(new Date().getTime());
+  const [DSR, setDSR] = useState<DSR>();
+  const [showTime, setShowTime] = useState(new Date().getTime());
 
   const rollBackRef = useRef<{ cid: number; nextStateBox: StateBox }[]>([]);
   const [rollbackAble, setRollbackAble] = useState(false);
 
+  // Handle the updated card after providing a Grade
   const handleChange = function (
     res: changeResponse,
     note: Note & { card: Card }
@@ -131,15 +132,20 @@ export function CardProvider({
     let updatedNoteBox: Array<Note & { card: Card }> = [
       ...noteBox[currentType],
     ];
+
+    // Remove the first card from the current state box
     updatedNoteBox = updatedNoteBox.slice(1);
     updatedNoteBox = updatedNoteBox.toSorted(
       (a, b) => fixDate(a.card.due).getTime() - fixDate(b.card.due).getTime()
     );
+
+    // state update is marked as a transition, a slow re-render did not freeze the user interface.
+    // if suspended, the card will not be added to the learning box
     startTransition(() => {
-      // state update is marked as a transition, a slow re-render did not freeze the user interface.
-      // if suspended, the card will not be added to the learning box
+      // If we're still card has become learning / relearning, we need to add it back to the learning box
       if (nextState !== State.Review && !suspended) {
         if (currentType === State.Learning) {
+          // If it used to be a learning card,
           setNoteBox[currentType]([...updatedNoteBox, note!]);
           console.log([...updatedNoteBox, note!]);
         } else {
@@ -149,6 +155,7 @@ export function CardProvider({
           setNoteBox[State.Learning]((pre) => [...pre, note!]);
         }
       } else {
+        // If the next state is reviewing, it means we don't need to see it again for today
         setNoteBox[currentType](updatedNoteBox);
       }
       rollBackRef.current.push({
@@ -168,16 +175,24 @@ export function CardProvider({
     return true;
   };
 
+  /**
+   * Schedules a card for the next review.
+   */
   const handleSchdule = debounce(async (grade: Grade) => {
     const note = noteBox[currentType][0];
     const now = new Date();
     const duration = now.getTime() - showTime;
-    const res = await fetch(`/api/fsrs?cid=${note.card.cid}&now=${now.getTime()}&offset=${now.getTimezoneOffset()}&grade=${grade}&duration=${duration}`, {
-      method: "put",
-    }).then((res) => res.json())
+    const res = await fetch(
+      `/api/fsrs?cid=${
+        note.card.cid
+      }&now=${now.getTime()}&offset=${now.getTimezoneOffset()}&grade=${grade}&duration=${duration}`,
+      {
+        method: 'put',
+      }
+    ).then((res) => res.json());
     if (res.code === 0) {
       console.log(`[cid:${note.card.cid}]duration:${duration}ms`);
-      handleChange(res,note);
+      handleChange(res, note);
       setOpen(false);
     }
     return res.code === 0 ? true : false;
@@ -259,9 +274,12 @@ export function CardProvider({
           setSchedule(res);
           setShowTime(new Date().getTime());
         });
-      if(note.card&&note.card.state==='Review'){
-        const r = fsrs().get_retrievability(note.card,fixDate(new Date().toLocaleString("UTC",{timeZone:'UTC'})))
-        if(r){
+      if (note.card && note.card.state === 'Review') {
+        const r = fsrs().get_retrievability(
+          note.card,
+          fixDate(new Date().toLocaleString('UTC', { timeZone: 'UTC' }))
+        );
+        if (r) {
           setDSR({
             D: note.card.difficulty,
             S: note.card.stability,

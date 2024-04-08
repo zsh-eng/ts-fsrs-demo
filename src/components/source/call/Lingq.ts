@@ -1,13 +1,14 @@
-import type { changeResponse } from "@/context/CardContext";
-import { SourceNote } from "..";
-import { State, date_diff, fixDate } from "ts-fsrs";
+import type { changeResponse } from '@/context/CardContext';
+import { SourceNote } from '..';
+import { State, date_diff, fixDate } from 'ts-fsrs';
 
+// TODO explore what these integrations with Lingq are doing
 export default async function LingqCallHandler(
   note: SourceNote,
   res: changeResponse
 ) {
   const sourceId = Number(note.sourceId);
-  const language = JSON.parse(note.extend as string)["lang"];
+  const language = JSON.parse(note.extend as string)['lang'];
 
   if (!sourceId || !language || !window) {
     return;
@@ -21,7 +22,7 @@ export default async function LingqCallHandler(
     extended_status = 0; //LingqExtendedStatus.Learning;
   } else if (nextDue) {
     const now = new Date();
-    const diff = date_diff(fixDate(nextDue), now, "days");
+    const diff = date_diff(fixDate(nextDue), now, 'days');
     //Ref https://github.com/thags/lingqAnkiSync/issues/34
     if (diff > 15) {
       status = 3; // LingqStatus.Learned;
@@ -41,10 +42,10 @@ export default async function LingqCallHandler(
   const token = await getLingqToken();
   if (token) {
     const formData = new FormData();
-    formData.append("status", status.toString());
-    formData.append("extended_status", extended_status.toString());
+    formData.append('status', status.toString());
+    formData.append('extended_status', extended_status.toString());
     await fetch(`/api/lingq/v3/${language}/cards/${sourceId}`, {
-      method: "PATCH",
+      method: 'PATCH',
       headers: {
         Authorization: token,
         noteId: note.nid.toString(),
@@ -58,8 +59,8 @@ export async function getLingqToken() {
   const globalForLingqToken = window as unknown as { lingqToken?: string };
   const token = globalForLingqToken.lingqToken;
   if (!token) {
-    const key = await fetch("/api/lingq/key", {
-      method: "POST",
+    const key = await fetch('/api/lingq/key', {
+      method: 'POST',
     }).then((res) => res.json());
     if (key.lingqKey) {
       globalForLingqToken.lingqToken = key.lingqKey;
